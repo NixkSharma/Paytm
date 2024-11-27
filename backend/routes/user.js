@@ -4,6 +4,7 @@ const jwt = require('jsonwebtoken');
 const router = express.Router();
 const asyncHandler = require('express-async-handler');
 const { JWT_SECRET } = require('../config');
+const authMiddleware = require('../middleware');
 const { User } = require('../db');
 
 
@@ -17,6 +18,31 @@ const signupPayload = zod.object({
 const signinPayload = zod.object({
     userName : zod.string().email(),
     password : zod.string().min(8, "Password must be atleast least 8 characters long")
+});
+
+const updatePayload = zod.object({
+    firstName : zod.string().optional(),
+    lastName : zod.string().optional(),
+    password : zod.string().min(8, "Password must be atleast least 8 characters long").optional()
+});
+
+router.put('/', authMiddleware,async(req, res)=>{
+    const {success} = updatePayload.safeParse(req.body);
+    if(!success){
+        return res.status(409).json({
+            message : "Invalid inputs"
+        });
+    }
+    try{
+        await User.findByIdAndUpdate(req.userId, req.body);
+        return res.status(200).json({
+            message : "Updated successfully"
+        });
+    }catch(error){
+        return res.status(409).json({
+            message : "Error while updating information"
+        });
+    }
 });
 
 router.post('/signup', async(req, res)=>{
