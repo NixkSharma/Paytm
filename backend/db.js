@@ -1,4 +1,5 @@
 const mongoose = require("mongoose");
+const bcrypt = require('bcrypt');
 mongoose.connect("mongo_url")
 .then(() => console.log("DB Connected"))
 .catch(e => console.log(`Error occured ${e}`));
@@ -38,9 +39,43 @@ const UserSchema = new mongoose.Schema({
     }
 });
 
+// Pre-Save Hook to implement bcrypt
+// UserSchema.pre('save', async function (next) {
+//     if (this.isModified('password')) {
+//         this.password = await bcrypt.hash(this.password, 10);
+//     }
+//     next();
+// });
+
+UserSchema.methods.createHash = async function(plainTextPassword){
+    const saltRounds = 10;
+    return await bcrypt.hash(plainTextPassword, saltRounds);
+    // When need control over the salt ->
+    //   const salt = await bcrypt.genSalt(saltRounds);
+    //   return await bcrypt.hash(plainTextPassword, salt);
+};
+
+UserSchema.methods.validatePassword = async function(candidatePassword) {
+    return await bcrypt.compare(candidatePassword, this.password);
+} 
+
+const AccountSchema = new mongoose.Schema({
+    userId : {
+        type :  mongoose.Schema.Types.ObjectId,
+        ref : 'User',
+        required : true
+    },
+    balance : {
+        type : Number,
+        required : true
+    }
+});
+
 
 const User = mongoose.model('Users', UserSchema);
+const Account = mongoose.model('Account', AccountSchema);
 module.exports = {
-    User
+    User,
+    Account
 };
 
