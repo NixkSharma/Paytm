@@ -26,6 +26,25 @@ const updatePayload = zod.object({
     password : zod.string().min(8, "Password must be atleast least 8 characters long").optional()
 });
 
+// retrive everything and then use array.filter -> cost??
+
+
+router.get('/bulk', authMiddleware, asyncHandler(async(req, res)=>{
+    const filter = req.query.filter || "";
+    console.log(filter);
+    console.log(typeof filter);
+    const query = {
+        $or : [
+            {firstName : { $regex: filter, $options: "i" }},
+            {lastName : { $regex: filter, $options: "i" }} 
+        ]
+    };
+    const users = await User.find(query, {userName : 1, firstName : 1, lastName : 1, _id : 1})
+    return res.status(200).json({
+        users
+    });
+}));
+
 router.put('/', authMiddleware,async(req, res)=>{
     const {success} = updatePayload.safeParse(req.body);
     if(!success){
