@@ -1,12 +1,11 @@
 const express = require('express');
 const zod = require('zod');
 const jwt = require('jsonwebtoken');
-const router = express.Router();
 const asyncHandler = require('express-async-handler');
 const { JWT_SECRET } = require('../config');
 const authMiddleware = require('../middleware');
-const { User } = require('../db');
-
+const { User, Account} = require('../db');
+const router = express.Router();
 
 const signupPayload = zod.object({
     userName : zod.string().email(),
@@ -31,8 +30,6 @@ const updatePayload = zod.object({
 
 router.get('/bulk', authMiddleware, asyncHandler(async(req, res)=>{
     const filter = req.query.filter || "";
-    console.log(filter);
-    console.log(typeof filter);
     const query = {
         $or : [
             {firstName : { $regex: filter, $options: "i" }},
@@ -64,7 +61,11 @@ router.put('/', authMiddleware,async(req, res)=>{
     }
 });
 
-router.post('/signup', async(req, res)=>{
+function randomBalance(){
+    return 1 + Number((Math.random()*10000).toFixed(2));
+}
+
+router.post('/signup', asyncHandler(async(req, res)=>{
     const { success, error } = signupPayload.safeParse(req.body);
     if(!success){
         return res.status(400).json({
@@ -82,13 +83,18 @@ router.post('/signup', async(req, res)=>{
     const user = new User({userName, firstName, lastName, password});
     hashedPassword = await user.createHash(user.password);
     user.password = hashedPassword;
+   
+    await Account.create({
+        userId : user._id,
+        balance : randomBalance()
+    });
     await user.save();
     const token = jwt.sign({ userId : user._id }, JWT_SECRET, { algorithm: 'HS256', expiresIn: '1h' });
     return res.status(200).json({
         message : "User created successfully",
-        token
+        token,
     });
-});
+}));
 
 router.post('/signin', asyncHandler(async(req, res)=>{
     const { success } = signinPayload.safeParse(req.body);

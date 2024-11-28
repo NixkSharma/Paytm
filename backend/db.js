@@ -1,5 +1,6 @@
 const mongoose = require("mongoose");
 const bcrypt = require('bcrypt');
+const Big = require('big.js')
 mongoose.connect("mongo_url")
 .then(() => console.log("DB Connected"))
 .catch(e => console.log(`Error occured ${e}`));
@@ -67,7 +68,19 @@ const AccountSchema = new mongoose.Schema({
     },
     balance : {
         type : Number,
-        required : true
+        required : true,
+        get : (value) => {
+            if(value === undefined || value === null) return value;
+            return Big(value).div(100).toNumber();
+        },
+        set : (value) => {
+            if(isNaN(value)) throw new Error("Invalid value for balance");
+            const parts = value.toString().split('.');
+            if(parts[1] && parts[1].length > 2){
+                throw new Error("Too many decimal places in the value");
+            }
+            return Big(value).times(100).toNumber();
+        } 
     }
 });
 
