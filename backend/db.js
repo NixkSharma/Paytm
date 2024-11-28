@@ -1,7 +1,8 @@
 const mongoose = require("mongoose");
 const bcrypt = require('bcrypt');
-const Big = require('big.js')
-mongoose.connect("mongo_url")
+const Big = require('big.js');
+const { mongo_url } = require("./config");
+mongoose.connect(mongo_url)
 .then(() => console.log("DB Connected"))
 .catch(e => console.log(`Error occured ${e}`));
 
